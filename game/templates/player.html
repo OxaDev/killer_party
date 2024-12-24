@@ -1,11 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Killer Party</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        h1 {
+            background-color: #ff6f61;
+            color: white;
+            padding: 20px;
+            margin-bottom: 0;
+        }
+        h3 {
+            color: #ff6f61;
+            font-size: 1.5em;
+            margin-top: 30px;
+        }
+        .container {
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 500px;
+        }
+        .button {
+            background-color: #ff6f61;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #ff3b2d;
+        }
+        textarea, input, select {
+            width: 90%; /* Réduit la largeur des champs */
+            max-width: 400px; /* Limite la largeur des champs */
+            padding: 10px;
+            margin-top: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: left;
+            font-size: 1em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 100%;
+            margin-top: 15px;
+        }
+        .alert {
+            color: #ff3b2d;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .rules {
+            background-color: #fff8e1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+            font-size: 1.1em;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Bienvenue à Killer Party</h1>
+
+    <div class="rules">
+        <h3>Règles du jeu Killer Party</h3>
+        <p>Voici les étapes et règles pour jouer à Killer Party :</p>
+        <ul>
+            <li>1. Vous devez entrer le code du jeu fourni par le maître du jeu.</li>
+            <li>2. Chargez les personnages du jeu en cliquant sur "Charger les Joueurs".</li>
+            <li>3. Sélectionnez votre personnage dans la liste des joueurs disponibles.</li>
+            <li>4. Entrez le code personnel qui vous a été attribué par le maître du jeu.</li>
+            <li>5. Cliquez sur "Obtenir votre Cible" pour savoir qui est votre cible.</li>
+        </ul>
+        <p>Votre objectif : tuer votre cible avec la méthode indiquée.</p>
+        <p>Si vous réussissez, annoncez-le, vous faites parti des gagnants, bravo ! Essayez d'aider les autres assassins ensuite</p>
+        <p>Si vous êtes tué, vous ne pouvez plus tuer, vous avez perdu.</p>
+    </div>
+
+    <div class="container section">
+        <h3>Obtenir votre Cible</h3>
+        <input type="text" id="gameCodeForDropdown" placeholder="Code du Jeu" />
+        <button class="button" onclick="loadPlayers()">Charger les Joueurs</button>
+        <select id="playerDropdown">
+            <option value="">Sélectionner votre nom</option>
+        </select>
+        <input type="text" id="playerCode" placeholder="Code du Joueur" />
+        <button class="button" onclick="getTarget()">Obtenir votre Cible</button>
+        <pre id="targetResult"></pre>
+    </div>
+
     <script>
+        async function loadPlayers() {
+            const gameCode = document.getElementById('gameCodeForDropdown').value;
+            const dropdown = document.getElementById('playerDropdown');
+            dropdown.innerHTML = '<option value="">Chargement...</option>';
+    
+            try {
+                const response = await fetch(`/get-players/${gameCode}/`);
+                const data = await response.json();
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+    
+                dropdown.innerHTML = '<option value="">Sélectionner votre nom</option>';
+                data.players.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player;
+                    option.textContent = player;
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                alert("Erreur lors du chargement des joueurs : " + error.message);
+            }
+        }
+    
+        async function getTarget() {
+            const gameCode = document.getElementById('gameCodeForDropdown').value;
+            const playerName = document.getElementById('playerDropdown').value;
+            const playerCode = document.getElementById('playerCode').value;
+    
+            if (!playerName) {
+                alert("Veuillez sélectionner un joueur.");
+                return;
+            }
+    
+            const resultElement = document.getElementById('targetResult');
+            resultElement.innerHTML = "Traitement en cours...";
+    
+            try {
+                const response = await fetch(`/get-target/${gameCode}/${playerName}/?player-code=${playerCode}`);
+                const data = await response.json();
+                if (data.error) {
+                    resultElement.innerHTML = `<span class="alert">${data.error}</span>`;
+                    return;
+                }
+    
+                resultElement.innerHTML = `<span class="success">Votre cible est : ${data.target}, Méthode : ${data.method}</span>`;
+            } catch (error) {
+                resultElement.innerHTML = `<span class="alert">Une erreur est survenue : ${error.message}</span>`;
+            }
+        }
+
         async function sendRequest(url, method, data, resultElementId) {
             const resultElement = document.getElementById(resultElementId);
-            resultElement.innerHTML = "Processing...";
+            resultElement.innerHTML = "Traitement en cours...";
             try {
                 const response = await fetch(url, {
                     method: method,
@@ -18,7 +188,7 @@
                 const result = await response.json();
                 resultElement.innerHTML = JSON.stringify(result, null, 2);
             } catch (error) {
-                resultElement.innerHTML = "An error occurred: " + error.message;
+                resultElement.innerHTML = `<span class="alert">Une erreur est survenue : ${error.message}</span>`;
             }
         }
 
@@ -35,75 +205,6 @@
                 }
             }
             return cookieValue;
-        }
-    </script>
-</head>
-<body>
-    <h1>Welcome to Killer Party</h1>
-
-    <div>
-        <h3>Get Your Target</h3>
-        <input type="text" id="gameCodeForDropdown" placeholder="Game Code" />
-        <button onclick="loadPlayers()">Load Players</button>
-        <select id="playerDropdown">
-            <option value="">Select your name</option>
-        </select>
-        <input type="text" id="playerCode" placeholder="Player Code" />
-        <button onclick="getTarget()">Get Your Target</button>
-        <pre id="targetResult"></pre>
-    </div>
-    
-    <script>
-        async function loadPlayers() {
-            const gameCode = document.getElementById('gameCodeForDropdown').value;
-            const dropdown = document.getElementById('playerDropdown');
-            dropdown.innerHTML = '<option value="">Loading...</option>';
-    
-            try {
-                const response = await fetch(`/get-players/${gameCode}/`);
-                const data = await response.json();
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-    
-                dropdown.innerHTML = '<option value="">Select your name</option>';
-                data.players.forEach(player => {
-                    const option = document.createElement('option');
-                    option.value = player;
-                    option.textContent = player;
-                    dropdown.appendChild(option);
-                });
-            } catch (error) {
-                alert("Error loading players: " + error.message);
-            }
-        }
-    
-        async function getTarget() {
-            const gameCode = document.getElementById('gameCodeForDropdown').value;
-            const playerName = document.getElementById('playerDropdown').value;
-            const playerCode = document.getElementById('playerCode').value;
-    
-            if (!playerName) {
-                alert("Please select a player.");
-                return;
-            }
-    
-            const resultElement = document.getElementById('targetResult');
-            resultElement.innerHTML = "Processing...";
-    
-            try {
-                const response = await fetch(`/get-target/${gameCode}/${playerName}/?player-code=${playerCode}`);
-                const data = await response.json();
-                if (data.error) {
-                    resultElement.innerHTML = data.error;
-                    return;
-                }
-    
-                resultElement.innerHTML = `Your target is: ${data.target},\nMethod: ${data.method}`;
-            } catch (error) {
-                resultElement.innerHTML = "An error occurred: " + error.message;
-            }
         }
     </script>
 </body>
