@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Killer Party Admin</title>
+    <title>Killer Party</title>
     <script>
         async function sendRequest(url, method, data, resultElementId) {
             const resultElement = document.getElementById(resultElementId);
@@ -40,35 +40,6 @@
 </head>
 <body>
     <h1>Welcome to Killer Party</h1>
-
-    <div>
-        <h3>Create a New Game</h3>
-        <button onclick="sendRequest('/create-game/', 'POST', {}, 'createGameResult')">Create Game</button>
-        <pre id="createGameResult"></pre>
-    </div>
-
-    <div>
-        <h3>Add Players</h3>
-        <input type="text" id="gameCodeForPlayers" placeholder="Game Code" />
-        <textarea id="playersList" placeholder="Enter player names, one per line"></textarea>
-        <button onclick="sendRequest('/add-players/' + document.getElementById('gameCodeForPlayers').value + '/', 'POST', {players: document.getElementById('playersList').value.split('\\n')}, 'addPlayersResult')">Add Players</button>
-        <pre id="addPlayersResult"></pre>
-    </div>
-
-    <div>
-        <h3>Assign Targets</h3>
-        <input type="text" id="gameCodeForTargets" placeholder="Game Code" />
-        <button onclick="sendRequest('/assign-targets/' + document.getElementById('gameCodeForTargets').value + '/', 'POST', {}, 'assignTargetsResult')">Assign Targets</button>
-        <pre id="assignTargetsResult"></pre>
-    </div>
-
-    <div>
-        <h3>Get players codes</h3>
-        <input type="text" id="gameCodeForPlayersCodes" placeholder="Game Code" />
-        <input type="text" id="gameMasterCode" placeholder="Game Master Code" />
-        <button onclick="sendRequest('/get-players-codes/' + document.getElementById('gameCodeForPlayersCodes').value + '/?master-code='+ document.getElementById('gameMasterCode').value, 'GET', {}, 'playersCodesResult')">Get Players Codes</button>
-        <pre id="playersCodesResult"></pre>
-    </div>
 
     <div>
         <h3>Get Your Target</h3>

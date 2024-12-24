@@ -7,33 +7,61 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Game
 from django.core.exceptions import ObjectDoesNotExist
+from .killing_methods import methods as killing_methods
+
+def create_player_code():
+    return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
+
+def create_master_code():
+    return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=20))
+
 
 @csrf_exempt
 def create_game(request):
     if request.method == 'POST':
         game_code = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=6))
-        game = Game.objects.create(code=game_code)
-        return JsonResponse({"game_code": game_code})
+        master_code = create_master_code()
+        Game.objects.create(code=game_code, master_code=master_code)
+        return JsonResponse({"game_code": game_code, "master_code": master_code})
 
 @csrf_exempt
-def add_players(request):
-    game_code = request.POST.get("game_code")
-    breakpoint()
+def add_players(request,game_code):
     try:
         game = Game.objects.get(code=game_code)
     except ObjectDoesNotExist:
         return JsonResponse({"error": "Game not found"}, status=404)
 
     if request.method == 'POST':
-        players_body  = request.POST.get("players")
-        players_list = players_body.replace("\r","").split("\n")
-        game.players.extend(players_list)
+        if game.targets:
+            return JsonResponse({"message": "Targets are already assigned, don't add other players"})
+        data = json.loads(request.body)
+        player_list = [
+            player.replace(" ","").replace("\r","").lower()
+            for player in data.get('players',[""])[0].split("\n")
+        ]
+        clean_player_list = []
+        for i in range(len(player_list)):
+            player = player_list[i]
+            if player in game.players or player in player_list[i+1:]:
+                return JsonResponse({"message": f"player {player} already in game or has a duplicate in the given list"})
+            if player:
+                clean_player_list.append(player)
+        
+        for player in clean_player_list:
+            player_code = create_player_code()
+            game.players_codes[player] = player_code
+        game.players.extend(clean_player_list)
         game.save()
-        return JsonResponse({"message": "Players added successfully"})
+        return JsonResponse(
+            {
+                "message": "Players added successfully",
+                "players_codes" : game.players_codes
+            }
+        )
+
 
 @csrf_exempt
-def assign_targets(request):
-    game_code = request.POST.get("game_code")
+def assign_targets(request,game_code):
     try:
         game = Game.objects.get(code=game_code)
     except ObjectDoesNotExist:
@@ -43,56 +71,12 @@ def assign_targets(request):
         return JsonResponse({"error": "Not enough players"}, status=400)
 
     if request.method == 'POST':
+        if game.targets:
+            return JsonResponse({"message": "Targets are already assigned"})
         players = game.players
         random.shuffle(players)
-        methods = [
-            "take a selfie with them", "make them eat a chip", "shake their hand",
-            "make them laugh", "sing a song together", "give them a small item",
-            "ask them to say a specific word", "offer them a glass of water",
-            "ask them for directions to somewhere", "convince them to sit on a specific chair",
-            "ask them to guess a number", "share a fun fact with them",
-            "teach them a dance move", "give them a high-five", "ask them to hold something for you",
-            "pretend to interview them", "make them draw a simple picture",
-            "ask them to tell a joke", "ask them to help you find an object",
-            "ask them to join you for a short walk", "make them mimic an animal sound",
-            "play rock-paper-scissors with them", "show them a magic trick",
-            "ask them to clap their hands", "ask them to do a quick stretch",
-            "ask them to identify a color around you", "ask them to smile for a photo",
-            "get them to hum a tune", "ask them to read something aloud",
-            "share a secret handshake", "ask them to do a small favor for you",
-            "make them count something nearby", "ask them to point at a random object",
-            "ask them to compliment someone", "ask them to tell you a fun memory",
-            "make them describe their favorite food", "ask them to write down their favorite color",
-            "ask them to recite a tongue twister", "ask them to do a small hop",
-            "ask them to play a guessing game", "ask them to list three things they like",
-            "pretend to give them an award", "ask them to mimic your gesture",
-            "ask them to describe the weather", "ask them to help you rearrange something",
-            "ask them to count down from 10", "ask them to spell a word backward",
-            "ask them to name a type of flower", "ask them to describe a sound",
-            "make them fold a paper airplane", "ask them to whistle",
-            "ask them to pretend to pick a fruit", "ask them to touch something soft",
-            "ask them to stand in a specific spot", "ask them to perform a quick dance step",
-            "ask them to draw a circle in the air", "ask them to imagine a scenario",
-            "ask them to play a word association game", "ask them to identify a smell",
-            "ask them to close their eyes for 5 seconds", "ask them to name their favorite animal",
-            "ask them to imitate a famous character", "ask them to balance on one foot",
-            "ask them to pretend to throw a ball", "ask them to say a random number",
-            "ask them to identify a nearby sound", "ask them to touch something cold",
-            "ask them to imitate a bird call", "ask them to describe a tree",
-            "ask them to mimic a drumbeat", "ask them to identify a fruit",
-            "ask them to say the alphabet backward", "ask them to touch something green",
-            "ask them to describe their favorite holiday", "ask them to clap a rhythm",
-            "ask them to pretend to hold an invisible object", "ask them to wave at someone nearby",
-            "ask them to tap their foot", "ask them to blink rapidly",
-            "ask them to name a historical figure", "ask them to draw a shape with their finger",
-            "ask them to describe their dream destination", "ask them to mimic a robot",
-            "ask them to pretend to be a statue", "ask them to share a trivia fact",
-            "ask them to name a type of tree", "ask them to hum a familiar tune",
-            "ask them to imagine a favorite place", "ask them to mime eating a fruit",
-            "ask them to tap their nose", "ask them to mimic a car engine"
-        ]
         targets = {players[i]: players[(i + 1) % len(players)] for i in range(len(players))}
-        assigned_methods = {player: random.choice(methods) for player in players}
+        assigned_methods = {player: random.choice(killing_methods) for player in players}
 
         game.targets = targets
         game.methods = assigned_methods
@@ -101,17 +85,41 @@ def assign_targets(request):
         return JsonResponse({"message": "Targets assigned successfully"})
 
 @csrf_exempt
-def get_player_target(request):
-    game_code = request.GET.get("game_code")
-    player_name = request.GET.get("player_name")
+def get_player_target(request,game_code,player_name):
     try:
         game = Game.objects.get(code=game_code)
     except ObjectDoesNotExist:
         return JsonResponse({"error": "Game not found"}, status=404)
-    if player_name not in game.targets:
+    if player_name not in game.targets or player_name not in game.players_codes:
         return JsonResponse({"error": "Player not found in game"}, status=404)
+
+    player_code = request.GET.get("player-code")
+    if game.players_codes[player_name] != player_code:
+        return JsonResponse({"error": "Invalid given code"}, status=400)
 
     target = game.targets[player_name]
     method = game.methods[player_name]
 
     return JsonResponse({"target": target, "method": method})
+
+@csrf_exempt
+def get_players(request, game_code):
+    try:
+        game = Game.objects.get(code=game_code)
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+
+    return JsonResponse({"players": list(game.targets.keys())})
+
+@csrf_exempt
+def get_players_codes(request, game_code):
+    try:
+        game = Game.objects.get(code=game_code)
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+
+    master_code = request.GET.get("master-code")
+    if game.master_code != master_code:
+        return JsonResponse({"error": "Invalid master code"}, status=400)
+    
+    return JsonResponse({"players_codes": game.players_codes})
