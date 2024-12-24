@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Killer Party</title>
+    </head>
+    <body>
+        <h1>Welcome to Killer Party</h1>
+        <form action="/create-game/" method="post">
+            <button type="submit">Create a New Game</button>
+        </form>
+        <form action="/add-players/" method="post">
+            <input type="text" name="game_code" placeholder="Game Code" required />
+            <textarea name="players" placeholder="Enter player names, one per line" required></textarea>
+            <button type="submit">Add Players</button>
+        </form>
+        <form action="/assign-targets/" method="post">
+            <input type="text" name="game_code" placeholder="Game Code" required />
+            <button type="submit">Assign Targets</button>
+        </form>
+        <form action="/get-target/" method="get">
+            <input type="text" name="game_code" placeholder="Game Code" required />
+            <input type="text" name="player_name" placeholder="Your Name" required />
+            <button type="submit">Get Your Target</button>
+        </form>
+    </body>
+</html>
